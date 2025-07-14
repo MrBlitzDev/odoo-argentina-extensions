@@ -1,0 +1,30 @@
+# Archivos de sistema
+.DS_Store
+
+# Compilados de Python
+__pycache__/
+*.py[cod]
+
+# Archivos temporales
+*.swp
+*.swo
+*.bak
+*.tmp
+
+# Archivos de log o entorno
+*.log
+.env
+*.egg-info/
+.installed.cfg
+
+# Archivos y carpetas que Odoo genera en tiempo de ejecución
+*.zip
+*.db
+*.sqlite
+*.pkl
+
+# VS Code (opcional, si usás este editor)
+.vscode/
+
+# PyCharm (opcional)
+.idea/
