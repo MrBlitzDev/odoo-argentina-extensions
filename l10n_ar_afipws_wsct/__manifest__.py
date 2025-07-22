@@ -31,6 +31,7 @@ Long description of module's purpose
     'data': [
         # 'security/ir.model.access.csv',
         'views/product_category_view.xml',
+        'views/account_move_views.xml',
         'views/templates.xml',
     ],
     # only loaded in demonstration mode
