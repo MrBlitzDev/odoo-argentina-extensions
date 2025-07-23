@@ -1,3 +1,4 @@
+from decimal import Decimal
 from odoo import models
 
 class AccountMove(models.Model):
@@ -8,7 +9,18 @@ class AccountMove(models.Model):
 
     def wsct_map_invoice_info(self):
         invoice_info = self.base_map_invoice_info()
-        invoice_info["imp_reintegro"] = None
+
+        amounts = invoice_info["amounts"]
+
+        invoice_info["imp_reintegro"] = str("%.2f" % -amounts["vat_amount"])
+        invoice_info["imp_subtotal"] = self.amount_untaxed
+        invoice_info["cod_pais"] = invoice_info["country"].l10n_ar_afip_code
+        invoice_info["id_impositivo"] = invoice_info["condicion_iva_receptor_id"]
+        invoice_info["fecha_cbte"] = invoice_info["fecha_cbte"].strftime("%Y-%m-%d")
+        invoice_info["domicilio"] = invoice_info["commercial_partner"].contact_address_inline
+        invoice_info["cod_relacion"] = 1
+        invoice_info["observaciones"] = 'Observaciones: preguntar que enviamos'
+
         return invoice_info
     
     def wsct_pyafipws_create_invoice(self, ws, invoice_info):
