@@ -28,7 +28,10 @@ class AccountMove(models.Model):
         invoice_info["fecha_cbte"] = invoice_info["fecha_cbte"].strftime("%Y-%m-%d")
         invoice_info["domicilio"] = invoice_info["commercial_partner"].contact_address_inline
         invoice_info["cod_relacion"] = 1
-        invoice_info["observaciones"] = False
+        invoice_info["observaciones"] = False                  
+
+        if invoice_info["CbteAsoc"]:
+            invoice_info["cancela_misma_moneda_ext"] = None
 
         return invoice_info
     
@@ -43,6 +46,18 @@ class AccountMove(models.Model):
                 line["iva_id"],
                 line["imp_iva"],
                 line["importe"]
+            )
+
+        if invoice_info["CbteAsoc"]:
+            doc_number_parts = self._l10n_ar_get_document_number_parts(
+                invoice_info["CbteAsoc"].l10n_latam_document_number,
+                invoice_info["CbteAsoc"].l10n_latam_document_type_id.code,
+            )
+            ws.AgregarCmpAsoc(
+                invoice_info["CbteAsoc"].l10n_latam_document_type_id.code,
+                doc_number_parts["point_of_sale"],
+                doc_number_parts["invoice_number"],
+                self.company_id.vat,
             )
 
         self.pyafipws_add_tax(ws)
@@ -101,7 +116,7 @@ class AccountMove(models.Model):
                 )
                 or None
             )
-            tax_lines = line.tax_ids.filtered(lambda x: not x.l10n_ar_afipws_wsct_is_tourism_vat)
+            tax_lines = line.tax_ids.filtered(lambda x: not x.l10n_ar_afipws_wsct_is_tourism_vat and x.tax_group_id.l10n_ar_vat_afip_code)
             line_temp["iva_id"] = tax_lines.tax_group_id.l10n_ar_vat_afip_code
             vat_taxes_amounts = tax_lines.compute_all(
                 line.price_unit,
