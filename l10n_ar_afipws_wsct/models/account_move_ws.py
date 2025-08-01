@@ -33,6 +33,17 @@ class AccountMove(models.Model):
         if invoice_info["CbteAsoc"]:
             invoice_info["cancela_misma_moneda_ext"] = None
 
+        country = invoice_info["country"]
+        partner = invoice_info["commercial_partner"]
+
+        if country.code != 'AR':
+            if partner.is_company:
+                invoice_info["nro_doc"] = country.l10n_ar_legal_entity_vat
+            else:
+                invoice_info["nro_doc"] = country.l10n_ar_natural_vat    
+        else:
+            invoice_info["nro_doc"] = nro_doc            
+
         return invoice_info
     
     def wsct_invoice_add_info(self, ws, invoice_info):        
@@ -84,7 +95,6 @@ class AccountMove(models.Model):
             invoice_info["moneda_id"],
             invoice_info["moneda_ctz"],
             invoice_info["observaciones"],
-            invoice_info["cancela_misma_moneda_ext"],
         )
 
     def wsct_invoice_map_info_lines(self):
