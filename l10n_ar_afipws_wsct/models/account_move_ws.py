@@ -40,9 +40,7 @@ class AccountMove(models.Model):
             if partner.is_company:
                 invoice_info["nro_doc"] = country.l10n_ar_legal_entity_vat
             else:
-                invoice_info["nro_doc"] = country.l10n_ar_natural_vat    
-        else:
-            invoice_info["nro_doc"] = nro_doc            
+                invoice_info["nro_doc"] = country.l10n_ar_natural_vat       
 
         return invoice_info
     
