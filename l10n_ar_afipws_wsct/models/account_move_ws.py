@@ -7,8 +7,8 @@ class AccountMove(models.Model):
     _inherit = "account.move"
 
     def wsct_request_autorization(self, ws):
-        cae = ws.CAESolicitar()
-        if (cae):
+        ws.CAESolicitar()
+        if (ws.CAE):
             ws_date_str = ws.Vencimiento
             parsed_date = datetime.strptime(ws_date_str, "%Y/%m/%d")
             formatted_date = parsed_date.strftime("%Y%m%d")
