@@ -4,7 +4,7 @@
     "author": "Mr Blitz",
     "website": "https://www.yourcompany.com",
     "category": "Localization/Argentina",
-    "version": "0.1",
+    "version": "0.2",
     "depends": [
         "base", 
         "product", 
