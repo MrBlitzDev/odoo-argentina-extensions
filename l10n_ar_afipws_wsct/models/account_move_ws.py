@@ -27,17 +27,15 @@ class AccountMove(models.Model):
         invoice_info["id_impositivo"] = invoice_info["condicion_iva_receptor_id"]
         invoice_info["fecha_cbte"] = invoice_info["fecha_cbte"].strftime("%Y-%m-%d")
         invoice_info["domicilio"] = invoice_info["commercial_partner"].contact_address_inline
-        invoice_info["cod_relacion"] = 1
+        invoice_info["cod_relacion"] = invoice_info["commercial_partner"].codigo_relacion
         invoice_info["observaciones"] = False                  
 
         if invoice_info["CbteAsoc"]:
             invoice_info["cancela_misma_moneda_ext"] = None
 
         country = invoice_info["country"]
-        partner = invoice_info["commercial_partner"]
-
         if country.code != 'AR':
-            if partner.is_company:
+            if invoice_info["commercial_partner"].is_company:
                 invoice_info["nro_doc"] = country.l10n_ar_legal_entity_vat
             else:
                 invoice_info["nro_doc"] = country.l10n_ar_natural_vat       

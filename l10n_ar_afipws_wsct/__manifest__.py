@@ -16,6 +16,7 @@
     "data": [
         "views/product_category_view.xml",
         "views/account_move_views.xml",
+        "views/res_partner_view.xml",
     ],
 }
 
