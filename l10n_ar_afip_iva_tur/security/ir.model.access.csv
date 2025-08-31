@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_afip_iva_tur_wizard,afip.iva.tur.wizard access,model_afip_iva_tur_wizard,,1,1,1,1
+access_afip_iva_tur_report,afip.iva.tur.report access,model_afip_iva_tur_report,,1,1,1,1
