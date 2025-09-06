@@ -6,6 +6,7 @@ import datetime
 import io
 import base64
 import logging
+from odoo.addons.l10n_ar_afip_iva_tur.afip_utils import parse_autorizar_comprobante, format_fixed_decimal, parse_afip_response
 
 _logger = logging.getLogger(__name__)
 
@@ -221,105 +222,59 @@ class AfipIvaTurReport(models.Model):
         )
         output.write(line1 + '\r\n')
 
-        # --- GENERACION DE OTROS TIPOS DE REGISTRO POR CADA FACTURA ---
-        ident_agente = self.company_id.afip_iva_tur_agent_identification or 'C'
-        fecha_pago = self.date_payment.strftime('%Y%m%d')
-
-        for inv in self.invoice_ids:
-            # Extraer Punto de Venta y Número de Comprobante del document_number
-            parts = (inv.l10n_latam_document_number or '').split('-')
-            punto_venta = ""
-            numero_comprobante_seq = ""
-            if len(parts) == 2:
-                punto_venta = str(parts[0]).zfill(5)
-                numero_comprobante_seq = str(parts[1]).zfill(8)
-            else:
-                _logger.warning(f"Factura {inv.name}: Formato de document_number ({inv.l10n_latam_document_number}) no es el esperado (PV-Número). Asumiendo 0 para PV y número completo para Nro. Comprobante.")
-                punto_venta = "00000"
-                numero_comprobante_seq = str(inv.l10n_latam_document_number or '')[-8:].zfill(8)
-
-
+        for inv in self.invoice_ids:  
+            
+            comprobante = parse_autorizar_comprobante(inv.afip_xml_request).comprobante
+            response = parse_afip_response(inv.afip_xml_response)
+                      
             # --- REGISTRO TIPO 2: COMPROBANTE DE VENTA ---
-            tipo_comprobante_afip = str(inv.l10n_latam_document_type_id.code or '000').zfill(3)
-            if len(tipo_comprobante_afip) > 3:
-                _logger.warning(f"Factura {inv.name}: Código AFIP de tipo de comprobante ({tipo_comprobante_afip}) excede 3 dígitos. Se truncará.")
-                tipo_comprobante_afip = tipo_comprobante_afip[-3:]
-
+            tipo_comprobante_afip = comprobante.codigoTipoDocumento.zfill(3)
+            punto_venta = comprobante.numeroPuntoVenta.zfill(5)
+            numero_comprobante = comprobante.numeroComprobante.zfill(8)
             fecha_emision = inv.invoice_date.strftime('%Y%m%d') if inv.invoice_date else '00000000'
-
-            tipo_doc_turista = str(inv.partner_id.l10n_latam_identification_type_id.l10n_ar_afip_code or '').zfill(2)
-
-            nro_doc_turista = str(inv.partner_id.vat or '').replace('-', '').strip().zfill(11)
-
-            importe_total_comprobante = str(int(round(inv.amount_total * 100))).zfill(15)
-            if len(importe_total_comprobante) > 15:
-                _logger.error(f"Factura {inv.name}: Importe total ({inv.amount_total}) convertido a {importe_total_comprobante} excede 15 dígitos. ¡Formato AFIP inválido!")
-
-            tipo_operacion = 'A' # Default
-            for line in inv.invoice_line_ids:
-                if line.product_id and line.product_id.categ_id and hasattr(line.product_id.categ_id, 'item_type_t') and line.product_id.categ_id.item_type_t:
-                    tipo_operacion = line.product_id.categ_id.item_type_t
-                    break
-
-            cant_noches = 0
-            for line in inv.invoice_line_ids:
-                if line.product_id and line.product_id.categ_id and hasattr(line.product_id.categ_id, 'cod_tur') and isinstance(line.product_id.categ_id.cod_tur, (int, float)):
-                    cant_noches += int(line.product_id.categ_id.cod_tur * line.quantity)
-                else:
-                    _logger.warning(f"Factura {inv.name}: No se pudo obtener la cantidad de noches de la línea {line.name} (campo 'cod_tur' no numérico o ausente). Se usará 0 para esta línea.")
-            cant_noches = str(cant_noches).zfill(5)
-            if len(cant_noches) > 5:
-                _logger.error(f"Factura {inv.name}: Cantidad de noches ({cant_noches}) excede 5 dígitos. ¡Revise el formato AFIP!")
-                cant_noches = '99999'
-
-            moneda_afip_code = str(inv.currency_id.l10n_ar_afip_code or 'PES').ljust(3, ' ')
-
-            tipo_cambio = 'V' if inv.currency_id != inv.company_id.currency_id else 'F'
-            monto_tipo_cambio = 0.0
-            if inv.currency_id != inv.company_id.currency_id:
-                if hasattr(inv, 'l10n_ar_currency_rate') and inv.l10n_ar_currency_rate:
-                    monto_tipo_cambio = inv.l10n_ar_currency_rate
-                else:
-                    try:
-                        from_currency = inv.currency_id
-                        to_currency = inv.company_id.currency_id
-                        monto_tipo_cambio = inv.amount_total_company_signed / inv.amount_total if inv.amount_total != 0 else 0.0
-                        _logger.warning(f"Factura {inv.name}: Usando cálculo aproximado para tasa de cambio. Considere campo `l10n_ar_currency_rate`.")
-                    except Exception as e:
-                        _logger.error(f"Factura {inv.name}: Error al calcular monto tipo de cambio: {e}. Se usará 0.")
-            monto_tipo_cambio = str(int(round(monto_tipo_cambio * 10000))).zfill(10)
-            if len(monto_tipo_cambio) > 10:
-                 _logger.error(f"Factura {inv.name}: Monto tipo de cambio ({monto_tipo_cambio}) excede 10 dígitos. ¡Revise formato!")
-
-
-            cae_cai = str(inv.afip_auth_code or '').ljust(14, ' ')
-            if len(cae_cai) > 14:
-                _logger.warning(f"Factura {inv.name}: CAE/CAI ({cae_cai}) excede 14 digitos. Se truncará.")
-                cae_cai = cae_cai[:14]
-
-            fecha_vto_cae = inv.afip_auth_code_due.strftime('%Y%m%d') if inv.afip_auth_code_due else '00000000'
-
-            importe_neto_gravado = str(int(round(inv.amount_untaxed * 100))).zfill(15)
-            importe_impuesto_liquidado = str(int(round(inv.amount_tax * 100))).zfill(15)
+            tipo_doc_turista = comprobante.codigoTipoDocumento.zfill(2)
+            nro_doc_turista = comprobante.numeroDocumento.ljust(20)
+            codigo_pais = comprobante.codigoPais.zfill(4)
+            id_impositivo = comprobante.idImpositivo.zfill(2)
+            codigo_relacion = comprobante.codigoRelacionEmisorReceptor.zfill(2)
+            importe_gravado = str(comprobante.importeGravado * 100).zfill(15)
+            importe_no_gravado = str(comprobante.importeNoGravado * 100).zfill(15)
+            importe_exento = str(comprobante.importeExento * 100).zfill(15)
+            importe_reintegro = str(comprobante.importeReintegro * 100).zfill(15)
+            codigo_moneda = comprobante.codigoMoneda.ljust(3)
+            # Despues del PES revisar que la cotizacion sean 18 caracteres, 6 decimales
+            cotizacion_moneda = format_fixed_decimal(comprobante.cotizacionMoneda)
+            
+            tipo_auth = response.tipo_autorizacion
+            codigo_auth = response.codigo_autorizacion     
+            
+            codigo_control_fiscal = "".ljust(6)
+            serie_control_fiscal = "".zfill(10)
+            
+            importe_total = comprobante.importeTotal
 
             line2 = (
                 "02" +
                 tipo_comprobante_afip +
                 punto_venta +
-                numero_comprobante_seq +
+                numero_comprobante +
                 fecha_emision +
                 tipo_doc_turista +
                 nro_doc_turista +
-                importe_total_comprobante +
-                tipo_operacion +
-                cant_noches +
-                moneda_afip_code +
-                tipo_cambio +
-                monto_tipo_cambio +
-                cae_cai +
-                fecha_vto_cae +
-                importe_neto_gravado +
-                importe_impuesto_liquidado
+                codigo_pais +
+                id_impositivo +
+                codigo_relacion +
+                importe_gravado +
+                importe_no_gravado +
+                importe_exento +
+                importe_reintegro +
+                codigo_moneda +
+                cotizacion_moneda +
+                tipo_auth +
+                codigo_auth +
+                codigo_control_fiscal +
+                serie_control_fiscal +
+                importe_total
             )
             output.write(line2 + '\r\n')
 
