@@ -293,45 +293,18 @@ class AfipIvaTurReport(models.Model):
                 output.write(line3 + '\r\n')
 
             # --- REGISTRO TIPO 4: DATOS DEL TURISTA EXTRANJERO ---
-            full_name = str(inv.partner_id.name or '').strip()
-            apellido_turista = ''
-            nombre_turista = ''
-            name_parts = full_name.rsplit(' ', 1) # Divide por el último espacio
-            if len(name_parts) > 1:
-                apellido_turista = name_parts[1]
-                nombre_turista = name_parts[0]
-            else: # Si no hay espacio o es una sola palabra, asumimos todo como nombre
-                nombre_turista = full_name
+            nombre_turista = str(inv.partner_id.name or '').strip().ljust(50)
             
-            apellido_turista = apellido_turista.ljust(30, ' ')[:30]
-            nombre_turista = nombre_turista.ljust(30, ' ')[:30]
-
-            nacionalidad_afip_code = str(inv.partner_id.country_id.l10n_ar_afip_code or '000').zfill(3)
-            
-            sexo_turista = 'M' # Valor por defecto si no existe el campo o es nulo
-            if hasattr(inv.partner_id, 'gender') and inv.partner_id.gender:
-                sexo_turista = str(inv.partner_id.gender)
-            sexo_turista = sexo_turista.upper()
-
-            fecha_nacimiento = '00000000' # Valor por defecto si no existe el campo o es nulo
-            if hasattr(inv.partner_id, 'birthdate') and inv.partner_id.birthdate:
-                try:
-                    fecha_nacimiento = inv.partner_id.birthdate.strftime('%Y%m%d')
-                except Exception as e:
-                    _logger.warning(f"Factura {inv.name}: Error al formatear fecha de nacimiento {inv.partner_id.birthdate}: {e}. Se usará '00000000'.")
-
             line4 = (
                 "04" +
                 tipo_doc_turista +
                 nro_doc_turista +
-                apellido_turista +
+                codigo_pais +
                 nombre_turista +
-                nacionalidad_afip_code +
-                sexo_turista +
-                fecha_nacimiento
+                codigo_pais +
+                codigo_pais
             )
             output.write(line4 + '\r\n')
-
 
             # --- REGISTRO TIPO 5: IMPUESTOS Y PERCEPCIONES DEL COMPROBANTE ---
             line5 = (
