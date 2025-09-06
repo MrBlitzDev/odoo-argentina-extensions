@@ -279,18 +279,18 @@ class AfipIvaTurReport(models.Model):
             output.write(line2 + '\r\n')
 
             # --- REGISTRO TIPO 3: TOTALES DEL COMPROBANTE DE VENTA (Base IVA) ---
-            total_gravado_alicuota = str(int(round(inv.amount_untaxed * 100))).zfill(15)
-            total_iva_alicuota = str(int(round(inv.amount_tax * 100))).zfill(15)
-            
-            line3 = (
-                "03" +
-                "000" + # Tipo de Concepto (1) + Tipo de Impuesto (1) + Código de Impuesto (2) -> placeholder
-                "0000" + # Alícuota (4) -> placeholder
-                total_gravado_alicuota +
-                total_iva_alicuota
-            )
-            output.write(line3 + '\r\n')
-
+            for iva in comprobante.subtotales_iva:
+                codigo_iva = "11" if iva.codigo == "5" else "10"
+                base_imponible = "".zfill(15)
+                importe_iva = str(iva.importe * 100).zfill(15)
+                
+                line3 = (
+                    "03" +
+                    codigo_iva +
+                    base_imponible +
+                    importe_iva
+                )
+                output.write(line3 + '\r\n')
 
             # --- REGISTRO TIPO 4: DATOS DEL TURISTA EXTRANJERO ---
             full_name = str(inv.partner_id.name or '').strip()
