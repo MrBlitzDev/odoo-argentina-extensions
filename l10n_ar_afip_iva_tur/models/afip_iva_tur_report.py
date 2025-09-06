@@ -205,15 +205,19 @@ class AfipIvaTurReport(models.Model):
         
         # --- REGISTRO TIPO 1: CABECERA DEL ARCHIVO ---
         cuit_informante = self.company_id.vat.replace('-', '').strip()
-        fecha_generacion = datetime.date.today().strftime('%Y%m%d')
-        cantidad_registros_tipo2 = len(self.invoice_ids)
+        fecha_generacion = datetime.date.today().strftime('%Y%m')
+        sin_movimiento = "0" if len(self.invoice_ids) > 0 else "1"
         
         line1 = (
             "01" +
             str(cuit_informante).ljust(11, ' ') +
             fecha_generacion +
-            str(cantidad_registros_tipo2).zfill(10) # Borrar, aca van los valores fijos
-            # Agregar valores de secuencia y presentacion sin movimiento
+            "00" + # Secuencia CAMBIAR por valor del modelo
+            "0103" +
+            "858" +
+            "8089" +
+            "00100" +
+            sin_movimiento
         )
         output.write(line1 + '\r\n')
 
