@@ -211,7 +211,7 @@ class AfipIvaTurReport(models.Model):
         
         line1 = (
             "01" +
-            str(cuit_informante).ljust(11, ' ') +
+            cuit_informante +
             fecha_generacion +
             "00" + # Secuencia CAMBIAR por valor del modelo
             "0103" +
@@ -309,16 +309,20 @@ class AfipIvaTurReport(models.Model):
             # --- REGISTRO TIPO 5: IMPUESTOS Y PERCEPCIONES DEL COMPROBANTE ---
             line5 = (
                 "05" +
-                str(cuit_informante).ljust(11, ' ') +
+                cuit_informante +
                 tipo_comprobante_afip +
                 punto_venta +
-                numero_comprobante_seq +
-                cae_cai +
-                fecha_vto_cae +
-                importe_total_comprobante
+                numero_comprobante +
+                tipo_auth +
+                codigo_auth +
+                fecha_emision +
+                codigo_control_fiscal +
+                serie_control_fiscal +
+                importe_reintegro
             )
             output.write(line5 + '\r\n')
-
+            
+            # --- REGISTRO TIPO 6: COMPROBANTES ASOCIADOS ---
 
             # --- REGISTRO TIPO 7: CONCEPTOS DE DETALLE DEL COMPROBANTE ---
             for line_inv in inv.invoice_line_ids:
@@ -371,6 +375,7 @@ class AfipIvaTurReport(models.Model):
             # COD_REGIMEN = 8089 para IVA Turismo
             return f"F8089.{cuit_informante_padded}.{periodo}.{numero_remesa}.TXT"
 
+        # Revisar nombre del archivo
         filename = _get_export_filename_report(self)
 
         encoded_content = base64.b64encode(content.encode('utf-8'))
