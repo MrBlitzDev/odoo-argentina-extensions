@@ -14,6 +14,12 @@ class SubtotalIVA:
     def __init__(self, codigo, importe):
         self.codigo = codigo
         self.importe = float(importe)
+        
+class ComprobanteAsociado:
+    def __init__(self, codigoTipoComprobante, numeroPuntoVenta, numeroComprobante):
+        self.codigoTipoComprobante = codigoTipoComprobante
+        self.numeroPuntoVenta = numeroPuntoVenta
+        self.numeroComprobante = numeroComprobante
 
 class ComprobanteRequest:
     def __init__(self):
@@ -38,6 +44,7 @@ class ComprobanteRequest:
         self.observaciones = ""
         self.items = []
         self.subtotales_iva = []
+        self.comprobantes_asociados = []
 
 class AuthRequest:
     def __init__(self, token, sign, cuitRepresentada):
@@ -110,6 +117,15 @@ def parse_autorizar_comprobante(xml_string: str) -> AutorizarComprobanteRequest:
             importe=float(iva_node.findtext("importe")),
         )
         comp.subtotales_iva.append(sub)
+    
+    # --- Comprobantes Asociados ---
+    for ca_node in comp_node.findall(".//comprobanteAsociado", ns):
+        ca = ComprobanteAsociado(
+            codigoTipoComprobante=ca_node.findtext("codigoTipoComprobante"),
+            numeroPuntoVenta=ca_node.findtext("numeroPuntoVenta"),
+            numeroComprobante=ca_node.findtext("numeroComprobante"),
+        )
+        comp.comprobantes_asociados.append(ca)
 
     return AutorizarComprobanteRequest(auth=auth, comprobante=comp)
 

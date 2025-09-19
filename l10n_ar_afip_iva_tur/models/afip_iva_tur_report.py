@@ -281,7 +281,7 @@ class AfipIvaTurReport(models.Model):
             # --- REGISTRO TIPO 3: TOTALES DEL COMPROBANTE DE VENTA (Base IVA) ---
             for iva in comprobante.subtotales_iva:
                 codigo_iva = "11" if iva.codigo == "5" else "10"
-                base_imponible = "".zfill(15)
+                base_imponible = "".zfill(15)                
                 importe_iva = str(iva.importe * 100).zfill(15)
                 
                 line3 = (
@@ -323,27 +323,54 @@ class AfipIvaTurReport(models.Model):
             output.write(line5 + '\r\n')
             
             # --- REGISTRO TIPO 6: COMPROBANTES ASOCIADOS ---
+            for comp_asociado in comprobante.comprobantes_asociados:
+                codigo_comp_asociado = comp_asociado.codigoTipoComprobante.zfill(3)
+                punto_venta_comp_asociado = comp_asociado.numeroPuntoVenta.zfill(5)
+                numero_comp_asociado = comp_asociado.numeroComprobante.zfill(8)
+                
+                line3 = (
+                    "06" +
+                    codigo_comp_asociado +
+                    punto_venta_comp_asociado +
+                    numero_comp_asociado
+                )
+                output.write(line3 + '\r\n')
 
             # --- REGISTRO TIPO 7: CONCEPTOS DE DETALLE DEL COMPROBANTE ---
-            for line_inv in inv.invoice_line_ids:
-                codigo_item = str(line_inv.product_id.categ_id.cod_tur or '').ljust(5, ' ')[:5]
-                descripcion_item = str(line_inv.name or line_inv.product_id.name or '').ljust(40, ' ')[:40]
-                cantidad_item = str(int(round(line_inv.quantity * 1000))).zfill(10)
-                precio_unitario_item = str(int(round(line_inv.price_unit * 100))).zfill(15)
-                importe_total_item = str(int(round(line_inv.price_subtotal * 100))).zfill(15)
-                tipo_operacion_item = str(line_inv.product_id.categ_id.item_type_t or 'A')
-
+            for item in comprobante.items:
+                tipo_item = item.tipo.zfill(2)
+                cod_tur_item = item.codigoTurismo.zfil(4)
+                codigo_item = item.codigo.ljust(50)
+                cuit_hotel = "".ljust(11)
+                fecha_ingreso_item = "".ljust(8)
+                unidad_item = "".ljust(4)
+                tipo_unidad_item = "".ljust(4)
+                cantidad_personas = "".ljust(2)
+                descripcion_item = item.descripcion.ljust(200)
+                cantidad_noches = "".ljust(5)
+                precio_unitario = "".ljust(18)
+                codigo_iva_item = "11" if item.codigoAlicuotaIVA == "5" else "10"
+                importe_iva_item = str(item.ivaimporteIVA * 100).zfill(15)
+                importe_total_item = str(item.importeItem * 100).zfill(15)
+                
                 line7 = (
                     "07" +
+                    tipo_item +
+                    cod_tur_item +
                     codigo_item +
+                    cuit_hotel +
+                    fecha_ingreso_item +
+                    unidad_item +
+                    tipo_unidad_item +
+                    cantidad_personas +
                     descripcion_item +
-                    cantidad_item +
-                    precio_unitario_item +
-                    importe_total_item +
-                    tipo_operacion_item
+                    cantidad_noches +
+                    precio_unitario +
+                    codigo_iva_item +
+                    importe_iva_item +
+                    importe_total_item
                 )
                 output.write(line7 + '\r\n')
-
 
             # --- REGISTRO TIPO 8: MEDIOS DE PAGO ---
             codigo_medio_pago = "01" # Default "01" para Efectivo
