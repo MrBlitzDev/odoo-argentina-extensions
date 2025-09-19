@@ -328,13 +328,13 @@ class AfipIvaTurReport(models.Model):
                 punto_venta_comp_asociado = comp_asociado.numeroPuntoVenta.zfill(5)
                 numero_comp_asociado = comp_asociado.numeroComprobante.zfill(8)
                 
-                line3 = (
+                line6 = (
                     "06" +
                     codigo_comp_asociado +
                     punto_venta_comp_asociado +
                     numero_comp_asociado
                 )
-                output.write(line3 + '\r\n')
+                output.write(line6 + '\r\n')
 
             # --- REGISTRO TIPO 7: CONCEPTOS DE DETALLE DEL COMPROBANTE ---
             for item in comprobante.items:
