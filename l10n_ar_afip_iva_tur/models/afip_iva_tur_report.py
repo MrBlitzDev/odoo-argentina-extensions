@@ -373,12 +373,20 @@ class AfipIvaTurReport(models.Model):
                 output.write(line7 + '\r\n')
 
             # --- REGISTRO TIPO 8: MEDIOS DE PAGO ---
-            codigo_medio_pago = "01" # Default "01" para Efectivo
+            tipo_forma_pago = inv.journal_id.l10n_ar_afip_wsct_payment_type
+            codigo_swift = "".ljust(11)
+            tipo_cuenta = "".ljust(2)
+            numero_tarjeta = "".ljust(6)
+            numero_cuenta = "".ljust(20)
             importe_medio_pago = str(int(round(inv.amount_total * 100))).zfill(15)
 
             line8 = (
                 "08" +
-                codigo_medio_pago +
+                tipo_forma_pago +
+                codigo_swift +
+                tipo_cuenta +
+                numero_tarjeta +
+                numero_cuenta +
                 importe_medio_pago
             )
             output.write(line8 + '\r\n')
