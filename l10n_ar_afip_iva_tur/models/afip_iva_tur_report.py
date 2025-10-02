@@ -74,6 +74,12 @@ class AfipIvaTurReport(models.Model):
         readonly=True,
         help="Fecha en que el reporte fue marcado como presentado."
     )
+    sequence = fields.Integer(
+        string='Número de Remesa',
+        readonly=True,
+        default=0,
+        help='Número de intentos para presentar el reporte.'        
+    )
 
     @api.depends('date_from', 'date_to')
     def _compute_name(self):
@@ -208,12 +214,13 @@ class AfipIvaTurReport(models.Model):
         cuit_informante = self.company_id.vat.replace('-', '').strip()
         fecha_generacion = datetime.date.today().strftime('%Y%m')
         sin_movimiento = "0" if len(self.invoice_ids) > 0 else "1"
+        remesa = self.sequence.zfill(4)
         
         line1 = (
             "01" +
             cuit_informante +
             fecha_generacion +
-            "00" + # Secuencia CAMBIAR por valor del modelo
+            remesa +
             "0103" +
             "858" +
             "8089" +
@@ -404,11 +411,12 @@ class AfipIvaTurReport(models.Model):
             # Asumimos '0000' para la primera remesa.
             # Si necesitas un manejo de remesas, esto implicaría un campo en afip.iva.tur.report
             # para almacenar la última remesa del período.
-            numero_remesa = '0001' # Por defecto la primera remesa
+            numero_remesa = record.sequence.zfill(4)
 
             # Formato: F + COD_REGIMEN + CUIT_INFORMATE + PERIODO_AAAAMM + NRO_REMESA + .TXT
             # COD_REGIMEN = 8089 para IVA Turismo
-            return f"F8089.{cuit_informante_padded}.{periodo}.{numero_remesa}.TXT"
+            ## 00 completa el periodo en 8 dígitos
+            return f"F8089.{cuit_informante_padded}.{periodo}00.{numero_remesa}.TXT"
 
         # Revisar nombre del archivo
         filename = _get_export_filename_report(self)
@@ -418,6 +426,7 @@ class AfipIvaTurReport(models.Model):
         self.write({
             'exported_file': encoded_content,
             'exported_filename': filename,
+            'sequence': self.sequence + 1, # Incrementa la secuencia de remesa
         })
         self.state = 'generated'
         
