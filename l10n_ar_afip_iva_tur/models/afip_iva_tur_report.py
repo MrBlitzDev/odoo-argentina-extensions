@@ -22,17 +22,20 @@ class AfipIvaTurReport(models.Model):
         store=True,
         help="Nombre generado automáticamente para el reporte (ej. IVA TUR 2025/06)"
     )
+    
     company_id = fields.Many2one(
         'res.company',
         string='Compañía',
         required=True,
         default=lambda self: self.env.company
     )
+    
     date_from = fields.Date(
         string='Fecha Desde',
         required=True,
         default=lambda self: datetime.date.today().replace(day=1)
     )
+    
     date_to = fields.Date(
         string='Fecha Hasta',
         required=True,
@@ -53,27 +56,32 @@ class AfipIvaTurReport(models.Model):
     ], string='Estado', default='draft', readonly=True, copy=False,
         help="Estado del reporte: Borrador (se pueden editar los datos), Generado (listo para presentar), Presentado (reporte enviado a AFIP)."
     )
+    
     invoice_ids = fields.Many2many(
         'account.move',
         string='Comprobantes Incluidos',
         domain=[('move_type', '=', 'out_invoice'), ('state', '=', 'posted')],
         help="Listado de comprobantes Tipo T incluidos en este reporte. Se completará automáticamente al generar el borrador."
     )
+    
     exported_file = fields.Binary(
         string='Archivo TXT Exportado',
         readonly=True,
         attachment=True,
         help="Archivo TXT generado para la presentación en AFIP."
     )
+    
     exported_filename = fields.Char(
         string='Nombre del Archivo',
         readonly=True,
     )
+    
     presentation_date = fields.Date(
         string='Fecha de Presentación',
         readonly=True,
         help="Fecha en que el reporte fue marcado como presentado."
     )
+    
     sequence = fields.Integer(
         string='Número de Remesa',
         readonly=True,
