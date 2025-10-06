@@ -1,0 +1,16 @@
+<odoo>
+    <record id="view_account_journal_form_inherit_l10n_ar_wsct" model="ir.ui.view">
+        <field name="name">account.journal.form.l10n_ar_wsct.inherit</field>
+        <field name="model">account.journal</field>
+        <field name="inherit_id" ref="account.view_account_journal_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='advanced_settings']/group" position="inside">
+
+                <group string="Factura turismo - Forma de pago" invisible="type != 'bank'">
+                    <field name="l10n_ar_afip_wsct_payment_type"/>
+                </group>
+
+            </xpath>
+        </field>
+    </record>
+</odoo>
