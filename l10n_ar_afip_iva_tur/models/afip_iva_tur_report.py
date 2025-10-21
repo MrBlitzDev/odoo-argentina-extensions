@@ -222,7 +222,7 @@ class AfipIvaTurReport(models.Model):
         cuit_informante = self.company_id.vat.replace('-', '').strip()
         fecha_generacion = datetime.date.today().strftime('%Y%m')
         sin_movimiento = "0" if len(self.invoice_ids) > 0 else "1"
-        remesa = self.sequence.zfill(4)
+        remesa = str(self.sequence).zfill(4)
         
         line1 = (
             "01" +
@@ -252,10 +252,12 @@ class AfipIvaTurReport(models.Model):
             codigo_pais = comprobante.codigoPais.zfill(4)
             id_impositivo = comprobante.idImpositivo.zfill(2)
             codigo_relacion = comprobante.codigoRelacionEmisorReceptor.zfill(2)
-            importe_gravado = str(comprobante.importeGravado * 100).zfill(15)
-            importe_no_gravado = str(comprobante.importeNoGravado * 100).zfill(15)
-            importe_exento = str(comprobante.importeExento * 100).zfill(15)
-            importe_reintegro = str(comprobante.importeReintegro * 100).zfill(15)
+            importe_gravado = str(int(round(comprobante.importeGravado * 100))).zfill(15)
+            importe_no_gravado = str(int(round(comprobante.importeNoGravado * 100))).zfill(15)
+            importe_exento = str(int(round(comprobante.importeExento * 100))).zfill(15)
+            importe_reintegro = str(int(round(comprobante.importeReintegro * 100))).zfill(15)
+            importe_total = str(int(round(comprobante.importeTotal * 100))).zfill(15)
+
             codigo_moneda = comprobante.codigoMoneda.ljust(3)
             # Despues del PES revisar que la cotizacion sean 18 caracteres, 6 decimales
             cotizacion_moneda = format_fixed_decimal(comprobante.cotizacionMoneda)
@@ -265,8 +267,6 @@ class AfipIvaTurReport(models.Model):
             
             codigo_control_fiscal = "".ljust(6)
             serie_control_fiscal = "".zfill(10)
-            
-            importe_total = comprobante.importeTotal
 
             line2 = (
                 "02" +
@@ -297,7 +297,7 @@ class AfipIvaTurReport(models.Model):
             for iva in comprobante.subtotales_iva:
                 codigo_iva = "11" if iva.codigo == "5" else "10"
                 base_imponible = "".zfill(15)                
-                importe_iva = str(iva.importe * 100).zfill(15)
+                importe_iva = str(int(round(iva.importe * 100))).zfill(15)
                 
                 line3 = (
                     "03" +
@@ -354,7 +354,7 @@ class AfipIvaTurReport(models.Model):
             # --- REGISTRO TIPO 7: CONCEPTOS DE DETALLE DEL COMPROBANTE ---
             for item in comprobante.items:
                 tipo_item = item.tipo.zfill(2)
-                cod_tur_item = item.codigoTurismo.zfil(4)
+                cod_tur_item = item.codigoTurismo.zfill(4)
                 codigo_item = item.codigo.ljust(50)
                 cuit_hotel = "".ljust(11)
                 fecha_ingreso_item = "".ljust(8)
@@ -365,8 +365,8 @@ class AfipIvaTurReport(models.Model):
                 cantidad_noches = "".ljust(5)
                 precio_unitario = "".ljust(18)
                 codigo_iva_item = "11" if item.codigoAlicuotaIVA == "5" else "10"
-                importe_iva_item = str(item.ivaimporteIVA * 100).zfill(15)
-                importe_total_item = str(item.importeItem * 100).zfill(15)
+                importe_iva_item = str(int(round(item.importeIVA * 100))).zfill(15)
+                importe_total_item = str(int(round(item.importeItem * 100))).zfill(15)
                 
                 line7 = (
                     "07" +
@@ -388,7 +388,7 @@ class AfipIvaTurReport(models.Model):
                 output.write(line7 + '\r\n')
 
             # --- REGISTRO TIPO 8: MEDIOS DE PAGO ---
-            tipo_forma_pago = inv.journal_id.l10n_ar_afip_wsct_payment_type
+            tipo_forma_pago = inv._get_reconciled_payments().journal_id.l10n_ar_afip_wsct_payment_type
             codigo_swift = "".ljust(11)
             tipo_cuenta = "".ljust(2)
             numero_tarjeta = "".ljust(6)
@@ -419,7 +419,7 @@ class AfipIvaTurReport(models.Model):
             # Asumimos '0000' para la primera remesa.
             # Si necesitas un manejo de remesas, esto implicaría un campo en afip.iva.tur.report
             # para almacenar la última remesa del período.
-            numero_remesa = record.sequence.zfill(4)
+            numero_remesa = str(record.sequence).zfill(4)
 
             # Formato: F + COD_REGIMEN + CUIT_INFORMATE + PERIODO_AAAAMM + NRO_REMESA + .TXT
             # COD_REGIMEN = 8089 para IVA Turismo

@@ -59,71 +59,80 @@ class AutorizarComprobanteRequest:
 
 
 def parse_autorizar_comprobante(xml_string: str) -> AutorizarComprobanteRequest:
-    ns = {"soap": "http://schemas.xmlsoap.org/soap/envelope/",
-          "ser": "http://ar.gob.afip.wsct/CTService/"}
-    
+    ns = {
+        "soap": "http://schemas.xmlsoap.org/soap/envelope/",
+        "ser": "http://ar.gob.afip.wsct/CTService/",
+    }
+
     root = ET.fromstring(xml_string)
     req = root.find(".//ser:autorizarComprobanteRequest", ns)
+    if req is None:
+        raise ValueError("No se encontró el nodo autorizarComprobanteRequest en el XML")
 
     # --- authRequest ---
-    auth_node = req.find("authRequest", ns)
+    auth_node = req.find("authRequest")
+    if auth_node is None:
+        raise ValueError("No se encontró el nodo authRequest en el XML")
+
     auth = AuthRequest(
-        token=auth_node.findtext("token"),
-        sign=auth_node.findtext("sign"),
-        cuitRepresentada=auth_node.findtext("cuitRepresentada"),
+        token=auth_node.findtext("token", ""),
+        sign=auth_node.findtext("sign", ""),
+        cuitRepresentada=auth_node.findtext("cuitRepresentada", ""),
     )
 
     # --- comprobanteRequest ---
-    comp_node = req.find("comprobanteRequest", ns)
-    comp = ComprobanteRequest(
-        codigoTipoComprobante=comp_node.findtext("codigoTipoComprobante"),
-        numeroPuntoVenta=comp_node.findtext("numeroPuntoVenta"),
-        numeroComprobante=comp_node.findtext("numeroComprobante"),
-        fechaEmision=comp_node.findtext("fechaEmision"),
-        codigoTipoAutorizacion=comp_node.findtext("codigoTipoAutorizacion"),
-        codigoTipoDocumento=comp_node.findtext("codigoTipoDocumento"),
-        numeroDocumento=comp_node.findtext("numeroDocumento"),
-        idImpositivo=comp_node.findtext("idImpositivo"),
-        codigoPais=comp_node.findtext("codigoPais"),
-        domicilioReceptor=comp_node.findtext("domicilioReceptor"),
-        codigoRelacionEmisorReceptor=comp_node.findtext("codigoRelacionEmisorReceptor"),
-        importeGravado=float(comp_node.findtext("importeGravado")),
-        importeNoGravado=float(comp_node.findtext("importeNoGravado")),
-        importeExento=float(comp_node.findtext("importeExento")),
-        importeReintegro=float(comp_node.findtext("importeReintegro")),
-        importeTotal=float(comp_node.findtext("importeTotal")),
-        codigoMoneda=comp_node.findtext("codigoMoneda"),
-        cotizacionMoneda=float(comp_node.findtext("cotizacionMoneda")),
-        observaciones=comp_node.findtext("observaciones"),
-    )
+    comp_node = req.find("comprobanteRequest")
+    if comp_node is None:
+        raise ValueError("No se encontró el nodo comprobanteRequest en el XML")
+
+    comp = ComprobanteRequest()
+    comp.codigoTipoComprobante = comp_node.findtext("codigoTipoComprobante", "")
+    comp.numeroPuntoVenta = comp_node.findtext("numeroPuntoVenta", "")
+    comp.numeroComprobante = comp_node.findtext("numeroComprobante", "")
+    comp.fechaEmision = comp_node.findtext("fechaEmision", "")
+    comp.codigoTipoAutorizacion = comp_node.findtext("codigoTipoAutorizacion", "")
+    comp.codigoTipoDocumento = comp_node.findtext("codigoTipoDocumento", "")
+    comp.numeroDocumento = comp_node.findtext("numeroDocumento", "")
+    comp.idImpositivo = comp_node.findtext("idImpositivo", "")
+    comp.codigoPais = comp_node.findtext("codigoPais", "")
+    comp.domicilioReceptor = comp_node.findtext("domicilioReceptor", "")
+    comp.codigoRelacionEmisorReceptor = comp_node.findtext("codigoRelacionEmisorReceptor", "")
+    comp.importeGravado = float(comp_node.findtext("importeGravado", "0"))
+    comp.importeNoGravado = float(comp_node.findtext("importeNoGravado", "0"))
+    comp.importeExento = float(comp_node.findtext("importeExento", "0"))
+    comp.importeReintegro = float(comp_node.findtext("importeReintegro", "0"))
+    comp.importeTotal = float(comp_node.findtext("importeTotal", "0"))
+    comp.codigoMoneda = comp_node.findtext("codigoMoneda", "")
+    comp.cotizacionMoneda = float(comp_node.findtext("cotizacionMoneda", "0"))
+    comp.observaciones = comp_node.findtext("observaciones", "")
 
     # --- Items ---
-    for item_node in comp_node.findall(".//item", ns):
+    for item_node in comp_node.findall(".//item"):
         item = Item(
-            tipo=item_node.findtext("tipo"),
-            codigoTurismo=item_node.findtext("codigoTurismo"),
-            codigo=item_node.findtext("codigo"),
-            descripcion=item_node.findtext("descripcion"),
-            codigoAlicuotaIVA=item_node.findtext("codigoAlicuotaIVA"),
-            importeIVA=float(item_node.findtext("importeIVA")),
-            importeItem=float(item_node.findtext("importeItem")),
+            tipo=item_node.findtext("tipo", ""),
+            codigoTurismo=item_node.findtext("codigoTurismo", ""),
+            codigo=item_node.findtext("codigo", ""),
+            descripcion=item_node.findtext("descripcion", ""),
+            codigoAlicuotaIVA=item_node.findtext("codigoAlicuotaIVA", ""),
+            importeIVA=float(item_node.findtext("importeIVA", "0")),
+            importeItem=float(item_node.findtext("importeItem", "0")),
         )
         comp.items.append(item)
 
     # --- Subtotales IVA ---
-    for iva_node in comp_node.findall(".//subtotalIVA", ns):
+    for iva_node in comp_node.findall(".//subtotalIVA"):
         sub = SubtotalIVA(
-            codigo=iva_node.findtext("codigo"),
-            importe=float(iva_node.findtext("importe")),
+            codigo=iva_node.findtext("codigo", ""),
+            importe=float(iva_node.findtext("importe", "0")),
         )
         comp.subtotales_iva.append(sub)
-    
-    # --- Comprobantes Asociados ---
-    for ca_node in comp_node.findall(".//comprobanteAsociado", ns):
+
+    # --- Comprobantes Asociados (si existen) ---
+    for ca_node in comp_node.findall(".//comprobanteAsociado"):
         ca = ComprobanteAsociado(
-            codigoTipoComprobante=ca_node.findtext("codigoTipoComprobante"),
-            numeroPuntoVenta=ca_node.findtext("numeroPuntoVenta"),
-            numeroComprobante=ca_node.findtext("numeroComprobante"),
+            codigoTipoComprobante=ca_node.findtext("codigoTipoComprobante", ""),
+            numeroPuntoVenta=ca_node.findtext("numeroPuntoVenta", ""),
+            numeroComprobante=ca_node.findtext("numeroComprobante", ""),
         )
         comp.comprobantes_asociados.append(ca)
 
