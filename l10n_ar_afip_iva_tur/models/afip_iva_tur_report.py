@@ -388,23 +388,43 @@ class AfipIvaTurReport(models.Model):
                 output.write(line7 + '\r\n')
 
             # --- REGISTRO TIPO 8: MEDIOS DE PAGO ---
-            tipo_forma_pago = inv._get_reconciled_payments().journal_id.l10n_ar_afip_wsct_payment_type
+            
+            payments = inv._get_reconciled_payments()
+
+            # Campos comunes (vacíos por especificación)
             codigo_swift = "".ljust(11)
             tipo_cuenta = "".ljust(2)
             numero_tarjeta = "".ljust(6)
             numero_cuenta = "".ljust(20)
-            importe_medio_pago = str(int(round(inv.amount_total * 100))).zfill(15)
+            
+            if not payments:
+                # Sin pagos: tipo 1 (transferencia) con total de la factura
+                line8 = (
+                    "08"
+                    + "1"  # tipo_forma_pago (transferencia)
+                    + codigo_swift
+                    + tipo_cuenta
+                    + numero_tarjeta
+                    + numero_cuenta
+                    + str(int(round(inv.amount_total * 100))).zfill(15)
+                )
+                output.write(line8 + '\r\n')
+            else:
+                 # Con pagos: generar un registro por cada pago
+                for pay in payments:
+                    tipo_forma_pago = pay.journal_id.l10n_ar_afip_wsct_payment_type or '1'
+                    importe_medio_pago = str(int(round(pay.amount * 100))).zfill(15)
 
-            line8 = (
-                "08" +
-                tipo_forma_pago +
-                codigo_swift +
-                tipo_cuenta +
-                numero_tarjeta +
-                numero_cuenta +
-                importe_medio_pago
-            )
-            output.write(line8 + '\r\n')
+                    line8 = (
+                        "08"
+                        + tipo_forma_pago
+                        + codigo_swift
+                        + tipo_cuenta
+                        + numero_tarjeta
+                        + numero_cuenta
+                        + importe_medio_pago
+                    )
+                    output.write(line8 + '\r\n')
         
         content = output.getvalue()
         
